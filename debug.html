@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg Debug Test</title>
+</head>
+<body>
+    <h1>FFmpeg Loading Test</h1>
+    <div id="status">Loading...</div>
+    <div id="log"></div>
+    
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+    <script>
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+        
+        function addLog(message) {
+            const div = document.createElement('div');
+            div.textContent = new Date().toISOString() + ': ' + message;
+            log.appendChild(div);
+            console.log(message);
+        }
+        
+        addLog('Script started');
+        addLog('Checking FFmpeg availability...');
+        
+        setTimeout(() => {
+            if (typeof FFmpeg !== 'undefined') {
+                addLog('✅ FFmpeg is available!');
+                addLog('FFmpeg object: ' + typeof FFmpeg.FFmpeg);
+                status.textContent = 'SUCCESS: FFmpeg loaded';
+                status.style.color = 'green';
+                
+                // Try creating an instance
+                try {
+                    const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+                    addLog('✅ FFmpeg instance created successfully');
+                } catch (error) {
+                    addLog('❌ Error creating FFmpeg instance: ' + error.message);
+                }
+                
+            } else {
+                addLog('❌ FFmpeg is not available');
+                status.textContent = 'ERROR: FFmpeg not loaded';
+                status.style.color = 'red';
+            }
+        }, 1000);
+        
+        // Also check window object
+        setTimeout(() => {
+            addLog('Window.FFmpeg: ' + typeof window.FFmpeg);
+            addLog('Global FFmpeg: ' + typeof globalThis.FFmpeg);
+        }, 1500);
+    </script>
+</body>
+</html>
