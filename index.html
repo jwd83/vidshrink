@@ -48,20 +48,8 @@
         </div>
     </div>
     
-    <!-- SharedArrayBuffer polyfill for FFmpeg.wasm -->
-    <script>
-        // Enable SharedArrayBuffer if not available
-        if (typeof SharedArrayBuffer === 'undefined') {
-            console.log('SharedArrayBuffer not available, using polyfill');
-            window.SharedArrayBuffer = ArrayBuffer;
-        }
-        
-        // Set up cross-origin isolation headers simulation
-        if (typeof crossOriginIsolated === 'undefined') {
-            window.crossOriginIsolated = false;
-        }
-    </script>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+    <!-- Use FFmpeg.wasm version that works without SharedArrayBuffer -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

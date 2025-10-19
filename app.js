@@ -47,14 +47,9 @@ class VidShrink {
             
             this.log('FFmpeg library detected, creating instance...');
             
-            // Check for SharedArrayBuffer support
-            if (typeof SharedArrayBuffer === 'undefined') {
-                this.log('Warning: SharedArrayBuffer not available, using fallback mode');
-            }
-            
             this.ffmpeg = FFmpeg.createFFmpeg({
                 log: true,
-                corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+                corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
                 progress: (p) => {
                     const percentage = Math.round(p.ratio * 100);
                     this.updateProgress(percentage);

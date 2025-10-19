@@ -12,26 +12,24 @@ A single-page web application that compresses video files to under 10MB for Disc
 
 ## Usage
 
-### Option 1: Using Local HTTP Server (Recommended)
+### Option 1: GitHub Pages (Public Access)
 
-FFmpeg.wasm requires SharedArrayBuffer, which needs specific security headers:
+The app is automatically deployed to GitHub Pages and works without any setup:
 
-1. **Start the local server**:
-   - Windows: Double-click `start_server.bat`
-   - Or run: `python server.py`
-   
-2. **Open browser**: Navigate to `http://localhost:8000`
-
+1. **Access online**: Visit your GitHub Pages URL (e.g., `https://yourusername.github.io/vidshrink`)
+2. **Wait for FFmpeg to load** (first load may take 10-20 seconds)
 3. **Use the app**:
-   - Wait for FFmpeg to load
    - Select a video file
    - Adjust target size and quality
    - Click "Compress Video"
    - Download the result
 
-### Option 2: File Protocol (Limited)
+### Option 2: Local Development
 
-Opening `index.html` directly may not work due to SharedArrayBuffer restrictions. If it fails with "SharedArrayBuffer is not defined", use the local server method above.
+For local testing and development:
+
+1. **Direct file access**: Open `index.html` in your browser (should work with FFmpeg 0.10.1)
+2. **Local server** (if needed): Run `python server.py` and access `http://localhost:8000`
 
 ## Technical Details
 
@@ -71,13 +69,20 @@ vidshrink/
 
 ## Troubleshooting
 
-### "SharedArrayBuffer is not defined" Error
+### FFmpeg Loading on GitHub Pages
 
-This is a browser security restriction. FFmpeg.wasm requires specific HTTP headers:
+**Good news**: The app now uses FFmpeg.wasm 0.10.1 which works on GitHub Pages without SharedArrayBuffer!
+
+- **First load**: May take 10-20 seconds to download FFmpeg core files
+- **Subsequent loads**: Should be faster due to browser caching
+- **No server required**: Works directly from GitHub Pages
+
+### Legacy SharedArrayBuffer Issues (0.11+)
+
+If using newer FFmpeg.wasm versions locally:
 
 1. **Use the included HTTP server**: Run `python server.py` and access via `http://localhost:8000`
-2. **Alternative servers**: Use any HTTP server that sets CORP/COOP headers
-3. **Browser settings**: Some browsers allow disabling security features for local development
+2. **Alternative**: Use any HTTP server that sets CORP/COOP headers
 
 ### FFmpeg Loading Issues
 
@@ -103,7 +108,22 @@ The application is designed for simplicity and functionality over aesthetics. To
 3. **Add two-pass encoding**: Implement more sophisticated bitrate control
 4. **Better error handling**: Add specific error messages for common failure cases
 
+## GitHub Pages Deployment
+
+To deploy your own copy:
+
+1. **Fork this repository**
+2. **Enable GitHub Pages**:
+   - Go to Settings → Pages
+   - Source: "Deploy from a branch"
+   - Branch: "main" or "master"
+   - Folder: "/ (root)"
+3. **Access your deployment**: `https://yourusername.github.io/vidshrink`
+
+The included GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deploys changes when you push to the main branch.
+
 ## Dependencies
 
-- [FFmpeg WebAssembly](https://github.com/ffmpegwasm/ffmpeg.wasm) (loaded via CDN)
+- [FFmpeg WebAssembly 0.10.1](https://github.com/ffmpegwasm/ffmpeg.wasm) (loaded via CDN)
 - No build process or package manager required
+- Works on GitHub Pages without additional configuration
