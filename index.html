@@ -3,53 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VidShrink - Video Compressor for Discord</title>
-    <link rel="stylesheet" href="style.css">
+    <title>VidShrink - Simple Version</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        input, select, button { padding: 10px; margin: 5px 0; display: block; width: 100%; max-width: 300px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        .log { background: #fff; padding: 10px; margin: 10px 0; height: 200px; overflow-y: auto; border: 1px solid #ddd; }
+        .status { padding: 10px; background: #e9ecef; margin: 10px 0; font-weight: bold; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>VidShrink</h1>
-        <p>Compress videos to under 10MB for Discord uploads</p>
+        <h1>VidShrink - Simple Version</h1>
+        <p>Basic video compression using Canvas and MediaRecorder API</p>
         
-        <div class="input-section">
-            <label for="videoInput">Select video file:</label>
-            <input type="file" id="videoInput" accept="video/*">
-            
-            <div class="settings">
-                <label for="targetSize">Target size (MB):</label>
-                <input type="number" id="targetSize" value="9" min="1" max="10" step="0.1">
-                
-                <label for="quality">Quality preset:</label>
-                <select id="quality">
-                    <option value="fast">Fast (lower quality)</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="slow">Slow (higher quality)</option>
-                </select>
-            </div>
-            
-            <button id="compressBtn" disabled>Compress Video</button>
-        </div>
+        <input type="file" id="videoInput" accept="video/*">
+        <input type="number" id="targetSize" value="9" min="1" max="10" step="0.1" placeholder="Target size (MB)">
+        <select id="quality">
+            <option value="0.3">Low Quality</option>
+            <option value="0.5" selected>Medium Quality</option>
+            <option value="0.7">High Quality</option>
+        </select>
+        <button id="compressBtn" disabled>Compress Video</button>
         
-        <div class="progress-section">
-            <div id="progressBar" class="progress-bar">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-            <div id="status" class="status">Ready to compress videos</div>
-        </div>
+        <div id="status" class="status">Select a video file to start</div>
+        <div id="log" class="log"></div>
         
-        <div class="log-section">
-            <h3>Processing Log</h3>
-            <div id="logContainer" class="log-container"></div>
-        </div>
-        
-        <div class="output-section">
-            <button id="downloadBtn" style="display: none;">Download Compressed Video</button>
-            <div id="fileInfo" class="file-info"></div>
+        <div id="output" style="display: none;">
+            <video id="preview" controls style="max-width: 100%;"></video>
+            <button id="downloadBtn">Download Compressed Video</button>
         </div>
     </div>
-    
-    <!-- Use FFmpeg.wasm version that works without SharedArrayBuffer -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
-    <script src="app.js"></script>
+
+    <script>
+        class SimpleVidShrink {
+            constructor() {
+                this.videoInput = document.getElementById('videoInput');
+                this.targetSizeInput = document.getElementById('targetSize');
+                this.qualitySelect = document.getElementById('quality');
+                this.compressBtn = document.getElementById('compressBtn');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.status = document.getElementById('status');
+                this.log = document.getElementById('log');
+                this.output = document.getElementById('output');
+                this.preview = document.getElementById('preview');
+                
+                this.compressedBlob = null;
+                
+                this.bindEvents();
+                this.logMessage('Ready - using Canvas/MediaRecorder API for compression');
+            }
+            
+            bindEvents() {
+                this.videoInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.compressBtn.addEventListener('click', () => this.compressVideo());
+                this.downloadBtn.addEventListener('click', () => this.downloadVideo());
+            }
+            
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                this.logMessage(`Selected: ${file.name} (${sizeMB} MB)`);
+                this.updateStatus(`Ready to compress ${file.name}`);
+                this.compressBtn.disabled = false;
+            }
+            
+            async compressVideo() {
+                const file = this.videoInput.files[0];
+                if (!file) return;
+                
+                try {
+                    this.compressBtn.disabled = true;
+                    this.output.style.display = 'none';
+                    
+                    const targetSizeMB = parseFloat(this.targetSizeInput.value);
+                    const quality = parseFloat(this.qualitySelect.value);
+                    
+                    this.logMessage(`Starting compression to ${targetSizeMB}MB target...`);
+                    this.updateStatus('Loading video...');
+                    
+                    // Create video element
+                    const video = document.createElement('video');
+                    video.src = URL.createObjectURL(file);
+                    video.muted = true;
+                    
+                    await new Promise(resolve => {
+                        video.onloadedmetadata = resolve;
+                    });
+                    
+                    this.logMessage(`Video: ${video.videoWidth}x${video.videoHeight}, ${video.duration.toFixed(1)}s`);
+                    
+                    // Calculate target bitrate
+                    const targetBitrate = (targetSizeMB * 8 * 1024 * 1024) / video.duration * 0.8; // 80% for overhead
+                    this.logMessage(`Target bitrate: ${Math.round(targetBitrate / 1000)}kbps`);
+                    
+                    this.updateStatus('Compressing video...');
+                    
+                    // Set up canvas and MediaRecorder
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Scale down if needed to reduce file size
+                    const scale = Math.min(1, Math.sqrt(targetSizeMB / (file.size / (1024 * 1024))));
+                    canvas.width = Math.floor(video.videoWidth * scale);
+                    canvas.height = Math.floor(video.videoHeight * scale);
+                    
+                    this.logMessage(`Output resolution: ${canvas.width}x${canvas.height} (scale: ${scale.toFixed(2)})`);\n                    
+                    const stream = canvas.captureStream(30);
+                    const mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: 'video/webm;codecs=vp9',
+                        videoBitsPerSecond: targetBitrate
+                    });
+                    
+                    const chunks = [];
+                    mediaRecorder.ondataavailable = event => {
+                        if (event.data.size > 0) {
+                            chunks.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.start();
+                    video.currentTime = 0;
+                    video.play();
+                    
+                    // Draw video frames to canvas
+                    const drawFrame = () => {
+                        if (!video.ended) {
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            requestAnimationFrame(drawFrame);
+                            
+                            // Update progress
+                            const progress = (video.currentTime / video.duration) * 100;
+                            this.updateStatus(`Compressing... ${Math.round(progress)}%`);
+                        } else {
+                            mediaRecorder.stop();
+                        }
+                    };
+                    
+                    drawFrame();
+                    
+                    // Wait for recording to finish
+                    await new Promise(resolve => {
+                        mediaRecorder.onstop = resolve;
+                    });
+                    
+                    this.compressedBlob = new Blob(chunks, { type: 'video/webm' });
+                    const outputSizeMB = (this.compressedBlob.size / (1024 * 1024)).toFixed(2);
+                    
+                    this.logMessage(`Compression complete! Output: ${outputSizeMB}MB`);
+                    
+                    if (parseFloat(outputSizeMB) <= targetSizeMB) {
+                        this.updateStatus(`✅ Success: ${outputSizeMB}MB (under ${targetSizeMB}MB target)`);
+                    } else {
+                        this.updateStatus(`⚠️ Warning: ${outputSizeMB}MB (above ${targetSizeMB}MB target)`);
+                    }
+                    
+                    // Show preview
+                    this.preview.src = URL.createObjectURL(this.compressedBlob);
+                    this.output.style.display = 'block';
+                    
+                    // Cleanup
+                    URL.revokeObjectURL(video.src);
+                    
+                } catch (error) {
+                    this.logMessage(`❌ Error: ${error.message}`);
+                    this.updateStatus('Compression failed');
+                    console.error(error);
+                } finally {
+                    this.compressBtn.disabled = false;
+                }
+            }
+            
+            downloadVideo() {
+                if (!this.compressedBlob) return;
+                
+                const url = URL.createObjectURL(this.compressedBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'compressed_video.webm';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.logMessage('Download started');
+            }
+            
+            logMessage(message) {
+                const div = document.createElement('div');
+                div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                this.log.appendChild(div);
+                this.log.scrollTop = this.log.scrollHeight;
+            }
+            
+            updateStatus(message) {
+                this.status.textContent = message;
+            }
+        }
+        
+        // Check if MediaRecorder is supported
+        if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+            alert('Sorry, your browser does not support the MediaRecorder API with VP9 codec. Please try a modern browser like Chrome, Firefox, or Edge.');
+        } else {
+            new SimpleVidShrink();
+        }
+    </script>
 </body>
 </html>

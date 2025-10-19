@@ -1,14 +1,15 @@
 # VidShrink
 
-A single-page web application that compresses video files to under 10MB for Discord uploads using FFmpeg WebAssembly.
+A single-page web application that compresses video files to under 10MB for Discord uploads using native browser APIs (Canvas + MediaRecorder).
 
 ## Features
 
-- **Client-side processing**: All video compression happens in your browser
+- **Client-side processing**: All video compression happens in your browser using native APIs
 - **Target size control**: Automatically compress videos to fit Discord's 10MB limit
-- **Quality presets**: Choose between Fast, Medium, and Slow compression modes
-- **Verbose logging**: Real-time progress updates and detailed processing information
-- **No server required**: Pure HTML/CSS/JavaScript implementation
+- **Quality presets**: Choose between Low, Medium, and High quality compression
+- **Real-time preview**: See compressed video before downloading
+- **No external dependencies**: Uses Canvas API + MediaRecorder for reliable compression
+- **Works everywhere**: Compatible with GitHub Pages and any static hosting
 
 ## Usage
 
@@ -35,26 +36,29 @@ For local testing and development:
 
 ### Core Components
 
-- **VidShrink Class**: Main application controller handling UI interactions and video processing
-- **FFmpeg WebAssembly**: Video compression engine loaded from CDN
-- **Compression Algorithm**: Dynamic bitrate calculation based on target file size
-- **Progress System**: Real-time updates during compression process
+- **SimpleVidShrink Class**: Main application controller using native browser APIs
+- **Canvas API**: For video frame rendering and resolution scaling
+- **MediaRecorder API**: For video compression with VP9 codec
+- **Dynamic Bitrate Calculation**: Automatically calculates optimal bitrate for target file size
+- **Real-time Progress**: Live compression progress and preview
 
 ### Compression Strategy
 
-1. **File Analysis**: Calculate input file size and compression ratio needed
-2. **Bitrate Calculation**: Estimate target bitrate based on file size and estimated duration
-3. **Quality Presets**:
-   - **Fast**: `ultrafast` preset with fixed bitrate
-   - **Medium**: `medium` preset with calculated bitrate + faststart flag
-   - **Slow**: `slow` preset with CRF 28 and max bitrate constraints
-4. **Output Optimization**: MP4 format with H.264 video and AAC audio
+1. **Video Analysis**: Extract video metadata (resolution, duration, bitrate)
+2. **Resolution Scaling**: Automatically scale down resolution based on target size
+3. **Bitrate Calculation**: Calculate optimal bitrate for target file size with overhead buffer
+4. **Quality Presets**:
+   - **Low Quality (0.3)**: Aggressive compression for smallest files
+   - **Medium Quality (0.5)**: Balanced compression (default)
+   - **High Quality (0.7)**: Preserve quality with larger file sizes
+5. **Output Format**: WebM with VP9 video codec (efficient compression, wide support)
 
 ### Browser Requirements
 
-- Modern browser with WebAssembly support
-- Sufficient memory for video processing (depends on input file size)
+- Modern browser with Canvas API support (Chrome 51+, Firefox 43+, Safari 11+, Edge 79+)
+- MediaRecorder API with VP9 codec support (most modern browsers)
 - JavaScript enabled
+- Sufficient memory for video processing (depends on input file size)
 
 ### File Structure
 
@@ -69,20 +73,20 @@ vidshrink/
 
 ## Troubleshooting
 
-### FFmpeg Loading on GitHub Pages
+### MediaRecorder API Compatibility
 
-**Good news**: The app now uses FFmpeg.wasm 0.10.1 which works on GitHub Pages without SharedArrayBuffer!
+The app now uses native browser APIs for maximum compatibility:
 
-- **First load**: May take 10-20 seconds to download FFmpeg core files
-- **Subsequent loads**: Should be faster due to browser caching
-- **No server required**: Works directly from GitHub Pages
+- **Supported browsers**: Chrome, Firefox, Safari 14.1+, Edge (all modern versions)
+- **Codec support**: VP9 is preferred, falls back to available codecs
+- **No external dependencies**: No CDN or WebAssembly issues
 
-### Legacy SharedArrayBuffer Issues (0.11+)
+### Common Issues
 
-If using newer FFmpeg.wasm versions locally:
-
-1. **Use the included HTTP server**: Run `python server.py` and access via `http://localhost:8000`
-2. **Alternative**: Use any HTTP server that sets CORP/COOP headers
+1. **"MediaRecorder not supported"**: Update to a modern browser
+2. **Large file sizes**: Try lower quality settings or shorter videos
+3. **Slow compression**: Normal for large/long videos - browser-based processing
+4. **WebM playback**: Most modern browsers and Discord support WebM
 
 ### FFmpeg Loading Issues
 
@@ -124,6 +128,12 @@ The included GitHub Actions workflow (`.github/workflows/deploy.yml`) automatica
 
 ## Dependencies
 
-- [FFmpeg WebAssembly 0.10.1](https://github.com/ffmpegwasm/ffmpeg.wasm) (loaded via CDN)
-- No build process or package manager required
-- Works on GitHub Pages without additional configuration
+- **Zero external dependencies**: Uses only native browser APIs
+- **Canvas API**: For video frame rendering (built into browsers)
+- **MediaRecorder API**: For video compression (built into browsers)
+- **No CDN or WebAssembly**: Completely self-contained
+- **No build process**: Pure HTML/CSS/JavaScript
+
+### FFmpeg.wasm Version (Backup)
+
+The original FFmpeg.wasm implementation is preserved as `app-ffmpeg.js` for reference. The current implementation uses native browser APIs for better reliability and GitHub Pages compatibility.

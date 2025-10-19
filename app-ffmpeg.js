@@ -47,15 +47,8 @@ class VidShrink {
             
             this.log('FFmpeg library detected, creating instance...');
             
-            this.ffmpeg = FFmpeg.createFFmpeg({
-                log: true,
-                corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
-                progress: (p) => {
-                    const percentage = Math.round(p.ratio * 100);
-                    this.updateProgress(percentage);
-                    this.updateStatus(`Processing... ${percentage}%`);
-                }
-            });
+            // Simplified FFmpeg 0.9.7 initialization
+            this.ffmpeg = FFmpeg.createFFmpeg({ log: true });
             
             this.log('Loading FFmpeg core files...');
             await this.ffmpeg.load();
@@ -216,7 +209,9 @@ class VidShrink {
     }
     
     async fetchFile(file) {
-        return new Uint8Array(await file.arrayBuffer());
+        // Use FFmpeg's fetchFile for better compatibility
+        const { fetchFile } = FFmpeg;
+        return await fetchFile(file);
     }
     
     getFileExtension(filename) {
